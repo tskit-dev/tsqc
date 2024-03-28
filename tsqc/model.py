@@ -376,6 +376,9 @@ class TSModel:
                 "num_descendants": counts.num_descendants,
                 "num_inheritors": counts.num_inheritors,
                 "num_parents": counts.num_parents,
+                "Pop_A": np.random.randint(0, 20, ts.num_mutations),
+                "Pop_B": np.random.randint(0, 20, ts.num_mutations),
+                "Pop_C": np.random.randint(0, 20, ts.num_mutations),
             }
         )
 
@@ -391,6 +394,9 @@ class TSModel:
                 "num_descendants": "int",
                 "num_inheritors": "int",
                 "num_parents": "int",
+                "Pop_A": "int",
+                "Pop_B": "int",
+                "Pop_C": "int",
             }
         )
 
