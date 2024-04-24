@@ -21,14 +21,15 @@ from . import config  # noqa
 logger = daiquiri.getLogger("tsqc")
 
 
-def load_data(path):
+def load_data(path, calc_population_frequencies):
     logger.info(f"Loading {path}")
     try:
         ts = tskit.load(path)
+
     except tskit.FileFormatError:
         ts = tszip.decompress(path)
 
-    tsm = model.TSModel(ts, path.name)
+    tsm = model.TSModel(ts, calc_population_frequencies, path.name)
     return tsm
 
 
@@ -140,13 +141,26 @@ def setup_logging(log_level, no_log_filter):
     is_flag=True,
     help="Do not filter the output log (advanced debugging only)",
 )
-def main(path, port, show, log_level, no_log_filter, annotations_file):
+@click.option(
+    "--calc-population-frequencies",
+    default=False,
+    help="Calculate population frequencies for sample nodes",
+)
+def main(
+    path,
+    port,
+    show,
+    log_level,
+    no_log_filter,
+    annotations_file,
+    calc_population_frequencies,
+):
     """
     Run the tsqc server.
     """
     setup_logging(log_level, no_log_filter)
 
-    tsm = load_data(pathlib.Path(path))
+    tsm = load_data(pathlib.Path(path), calc_population_frequencies)
     if annotations_file:
         config.ANNOTATIONS_FILE = annotations_file
 

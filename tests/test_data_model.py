@@ -211,7 +211,7 @@ class TestMutationFrequencies:
         C1 = compute_mutation_counts(ts)
         C2 = model.compute_population_mutation_counts(ts)
         nt.assert_array_equal(C1, C2)
-        tsm = model.TSModel(ts)
+        tsm = model.TSModel(ts, calc_population_frequencies=True)
         df = tsm.mutations_df
         nt.assert_array_equal(df["pop_A_freq"], C1[0] / ts.num_samples)
         nt.assert_array_equal(df["pop_B_freq"], C1[1] / ts.num_samples)
@@ -242,7 +242,7 @@ class TestMutationFrequencies:
     def test_no_populations(self):
         tables = single_tree_example_ts().dump_tables()
         tables.populations.add_row(b"{}")
-        tsm = model.TSModel(tables.tree_sequence())
+        tsm = model.TSModel(tables.tree_sequence(), calc_population_frequencies=True)
         with pytest.raises(ValueError, match="must be assigned to populations"):
             tsm.mutations_df
 

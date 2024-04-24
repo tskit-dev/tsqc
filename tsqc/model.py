@@ -356,7 +356,7 @@ class TSModel:
     convenience methods for analysing the tree sequence.
     """
 
-    def __init__(self, ts, name=None):
+    def __init__(self, ts, calc_population_frequencies=False, name=None):
         self.ts = ts
         self.name = name
 
@@ -366,6 +366,7 @@ class TSModel:
         self.nodes_num_mutations = np.bincount(
             self.ts.mutations_node, minlength=self.ts.num_nodes
         )
+        self.calc_population_frequencies = calc_population_frequencies
 
     @property
     def file_uuid(self):
@@ -456,7 +457,7 @@ class TSModel:
         self.mutations_inherited_state = inherited_state
 
         population_data = {}
-        if ts.num_populations > 0:
+        if ts.num_populations > 0 and self.calc_population_frequencies:
             pop_mutation_count = compute_population_mutation_counts(ts)
             for pop in ts.populations():
                 name = f"pop{pop.id}"
