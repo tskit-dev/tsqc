@@ -24,7 +24,7 @@ DEFAULT_PARAMS = {
 
 pn.extension(sizing_mode="stretch_width")
 pn.extension("tabulator")
-
+pn.extension('floatpanel')
 hv.extension("bokeh")
 hv.opts.defaults(
     opts.Scatter(color=config.PLOT_COLOURS[2]),

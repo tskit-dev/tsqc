@@ -12,6 +12,7 @@ from ..plot_helpers import customise_ticks
 from ..plot_helpers import hover_points
 from ..plot_helpers import make_hist_on_axis
 from ..plot_helpers import selected_hist
+from ..plot_helpers import filter_points
 
 
 def make_muts_panel(log_y, tsm):
@@ -22,40 +23,39 @@ def make_muts_panel(log_y, tsm):
         muts_df["log_time"] = np.log10(1 + tsm.mutations_df["time"])
         y_dim = "log_time"
 
-    points = muts_df.hvplot.scatter(
-        x="position",
-        y=y_dim,
-        hover_cols=["id", "num_parents", "num_descendants", "num_inheritors"],
-    )
-    points.opts(
-        width=plot_width,
-        height=config.PLOT_HEIGHT,
-    )
-
-    range_stream = hv.streams.RangeXY(source=points)
-
-    tooltips = [
+    hover_tool = HoverTool(tooltips=[
         ("ID", "@id"),
         ("parents", "@num_parents"),
         ("descendants", "@num_descendants"),
         ("inheritors", "@num_inheritors"),
-    ]
-    hover = HoverTool(tooltips=tooltips)
-    points.opts(
-        color="num_inheritors",
-        alpha="num_inheritors",
-        cmap="BuGn",
-        colorbar_position="left",
-        clabel="inheritors",
-        tools=[hover, "tap"],
+    ])
+
+    points = muts_df.hvplot.scatter(
+        x="position",
+        y=y_dim,
+        hover_cols=["id", "num_parents", "num_descendants", "num_inheritors"],
+    ).opts(
+        width=plot_width,
+        height=config.PLOT_HEIGHT,
+        ## For some reason they are zero so come out transparent!
+        # color="num_inheritors",
+        # alpha="num_inheritors",
+        # cmap="BuGn",
+        # colorbar_position="left",
+        # clabel="inheritors",
+        tools=[hover_tool, "tap"],
     )
 
-    hover = points.apply(hover_points)
+    range_stream = hv.streams.RangeXY(source=points)
+    streams = [range_stream]
+    
+    filtered = points.apply(filter_points, streams=streams)
+    hover = filtered.apply(hover_points, threshold=config.THRESHOLD)
     shaded = hd.datashade(
         points,
         width=400,
         height=400,
-        streams=[range_stream],
+        streams=streams,
         cmap=config.PLOT_COLOURS[1:],
     )
 
@@ -64,11 +64,11 @@ def make_muts_panel(log_y, tsm):
     )
 
     time_hist = hv.DynamicMap(
-        make_hist_on_axis(dimension=y_dim, points=points), streams=[range_stream]
+        make_hist_on_axis(dimension=y_dim, points=points), streams=streams
     )
     site_hist = hv.DynamicMap(
         make_hist_on_axis(dimension="position", points=points),
-        streams=[range_stream],
+        streams=streams,
     )
 
     breakpoints = tsm.ts.breakpoints(as_array=True)
@@ -112,7 +112,7 @@ def make_muts_panel(log_y, tsm):
     def update_pop_freq_plot(x_range, y_range, index):
         if not index:
             return hv.Bars([], "population", "frequency").opts(
-                title="Tap on a mutation",
+                title="Population frequencies",
                 default_tools=[],
                 tools=["hover"],
                 hooks=[center_plot_title],
@@ -146,7 +146,7 @@ def make_muts_panel(log_y, tsm):
             return bars
         else:
             return hv.Bars([], "population", "frequency").opts(
-                title="Tap on a mutation",
+                title="Population frequencies", 
                 default_tools=[],
                 tools=["hover"],
                 hooks=[center_plot_title],
@@ -154,7 +154,9 @@ def make_muts_panel(log_y, tsm):
 
     def update_mut_info_table(x_range, y_range, index):
         if not index:
+            float_panel.visible = False
             return hv.Table([], kdims=["mutation"], vdims=["value"])
+        float_panel.visible = True
         mut_data = get_mut_data(x_range, y_range, index)
         pops = [col for col in mut_data.index if "pop_" in col]
         mut_data = mut_data.drop(pops)
@@ -171,13 +173,22 @@ def make_muts_panel(log_y, tsm):
         update_mut_info_table, streams=[range_stream, selection_stream]
     )
     tap_widgets_layout = (pop_data_dynamic + mut_info_table_dynamic).cols(1)
-
-    return pn.Row(
-        layout.opts(shared_axes=True).cols(1),
+    float_panel = pn.layout.FloatPanel(
         pn.Column(
-            tap_widgets_layout,
+            tap_widgets_layout, 
             align="center",
         ),
+        name="Mutation information",
+        position="left-top",
+        config = {
+            "contentSize": {"width": 450, "height": 660},
+            "headerControls": {"close": "remove", "maximize": "remove", "normalize": "remove", "minimize": "remove"}
+        },
+        visible=False # Initially not shown
+    )
+    return pn.Column(
+        float_panel,
+        layout.opts(shared_axes=True).cols(1),
     )
 
 
